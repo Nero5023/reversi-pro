@@ -97,7 +97,6 @@ def map_tuple_to_ch(tup):
     white = '○'
     legal = '×'
     empty = '☐'
-    print(tup)
     if len(tup) == 2:
         if tup == (1, 0):
             return black
@@ -213,4 +212,4 @@ if __name__ == '__main__':
     print(b.get_legal_actions(Player.BLACK))
     print(b.get_legal_actions_in_numbers(Player.BLACK))
     print(b.to_str(Player.BLACK))
-    print(b.task_move(Player.BLACK, 19))
+    print(b.task_move(Player.BLACK, 44).to_str(Player.WHITE))
