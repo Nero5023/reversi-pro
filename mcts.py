@@ -4,11 +4,11 @@ import math
 # N: number visit
 #
 
-class Node:
-    def __init__(self, state, parent, prior=0):
+class MCTSNode:
+    def __init__(self, state, move, parent=None):
         self.state = state
         self.parent = parent
-        self.prior = prior
+        self.move = move
         self.is_expanded = False
         self.children = {}
         self.N = 0
