@@ -16,11 +16,14 @@ class Player(Enum):
 BLACK_START = np.uint64(0b1000 << 32 | 0b10000 << 24)
 WHITE_START = np.uint64(0b1000 << 24 | 0b10000 << 32)
 
+FINAL_BIT = np.uint64((1 << 64) - 1)
+
 BOARD_SIDE = 8
 BOARD_SIZE_LEN = BOARD_SIDE*BOARD_SIDE
 PASS_MOVE = BOARD_SIZE_LEN
 
 
+# TODO: Handle pass move
 class ReversiBoard:
     def __init__(self, black_state=BLACK_START, white_state=WHITE_START):
         self.black_bit = black_state
@@ -205,6 +208,20 @@ def search_contiguous_stones_right(own, enemy, mask, offset):
 
 def bit_count(bit):
     return bin(bit).count('1')
+
+
+class GameState:
+    def __init__(self, board: ReversiBoard, to_player: Player):
+        self.board = board
+        self.to_player = to_player
+
+    def take_move(self, move):
+        new_board = self.board.task_move(self.to_player, move)
+        return GameState(new_board, self.to_player.rival())
+
+    @property
+    def is_terminal(self):
+        return (self.board.white_bit | self.board.black_bit) == FINAL_BIT
 
 
 if __name__ == '__main__':

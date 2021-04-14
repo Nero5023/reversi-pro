@@ -15,12 +15,21 @@ class MCTSNode:
         self.parent = parent
         self.move = move
         self.is_expanded = False
+        self.__is_terminal = False
         self.children = {}
         self.parent = parent
         # +1 for pass move
         self.child_priors = np.zeros([BOARD_SIZE_LEN+1], dtype=np.float32)
         self.child_total_values = np.zeros([BOARD_SIZE_LEN+1], dtype=np.float32)
         self.child_number_visits = np.zeros([BOARD_SIZE_LEN+1], dtype=np.float32)
+
+    @property
+    def is_terminal(self):
+        if self.__is_terminal is True:
+            return self.__is_terminal
+        # TODO: add is_terminal API
+        self.__is_terminal = self.state.is_terminal
+        return self.__is_terminal
 
     @property
     def N(self):
@@ -51,6 +60,8 @@ class MCTSNode:
     def select_leaf(self):
         node = self
         while node.is_expanded:
+            if node.is_terminal:
+                break
             action = node.best_child()
             node = node.maybe_add_child(action)
         return node
@@ -63,6 +74,7 @@ class MCTSNode:
     def expand(self, child_prior_probabilities):
         if self.is_expanded:
             return
+        self.is_expanded = True
         self.child_priors = child_prior_probabilities
 
     def back_update(self, value):
@@ -75,6 +87,18 @@ class MCTSNode:
             node.W += (value*factor)
             node = node.parent
             factor = factor * -1
+
+    # FOR bias
+    def children_pi(self, temperature):
+        # todo: check possible move
+        probs = self.child_number_visits ** (1 / temperature)
+        sum_probs = np.sum(probs)
+        if sum_probs == 0:
+            # TODO: if this return pass move
+            return probs
+        return probs/sum_probs
+
+    # TODO: add noise
 
 
 class SentinelNode(object):

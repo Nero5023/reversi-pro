@@ -1,7 +1,7 @@
-from .board import Board, PieceEnum
+# from .board import ReversiBoard
 
 
-class Game:
-    def __init__(self):
-        self.board = Board(width=8, height=8)
-
+# class Game:
+#     def __init__(self):
+#         self.board = ReversiBoard(width=8, height=8)
+#
