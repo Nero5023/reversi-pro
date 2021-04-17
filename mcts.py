@@ -4,24 +4,32 @@ import math
 # N: number visit
 #
 
-from board import BOARD_SIZE_LEN
+from board import BOARD_SIZE_LEN, PASS_MOVE, ReversiBoard, GameState
 import numpy as np
 from collections import defaultdict
 
+TOTAL_POSSIBLE_MOVE = BOARD_SIZE_LEN + 1
+
+# c_puct
+# find a best C_PUCT
+C_PUCT = 1
 
 class MCTSNode:
-    def __init__(self, state, move, parent=None):
+    def __init__(self, state: GameState, move, parent=None):
         self.state = state
         self.parent = parent
         self.move = move
         self.is_expanded = False
+        self.is_game_root = False
+        self.is_search_root = False
         self.__is_terminal = False
         self.children = {}
         self.parent = parent
+        self.pi = np.zeros([TOTAL_POSSIBLE_MOVE], dtype=np.float32)
         # +1 for pass move
-        self.child_priors = np.zeros([BOARD_SIZE_LEN+1], dtype=np.float32)
-        self.child_total_values = np.zeros([BOARD_SIZE_LEN+1], dtype=np.float32)
-        self.child_number_visits = np.zeros([BOARD_SIZE_LEN+1], dtype=np.float32)
+        self.child_priors = np.zeros([TOTAL_POSSIBLE_MOVE], dtype=np.float32)
+        self.child_total_values = np.zeros([TOTAL_POSSIBLE_MOVE], dtype=np.float32)
+        self.child_number_visits = np.zeros([TOTAL_POSSIBLE_MOVE], dtype=np.float32)
 
     @property
     def is_terminal(self):
@@ -52,10 +60,14 @@ class MCTSNode:
         return self.child_total_values / (self.child_number_visits + (self.child_number_visits == 0))
 
     def child_U(self):
-        return math.sqrt(self.N) * (self.child_priors / (1 + self.child_number_visits))
+        # TODO: add more rules for U, check miniGO
+        # self.edge_P * math.sqrt(max(1, self.self_N)) / (1 + self.edge_N)
+        return C_PUCT*math.sqrt(self.N) * (self.child_priors / (1 + self.child_number_visits))
 
     def best_child(self):
-        return np.argmax(self.child_Q() + self.child_U())
+        a = np.argmax(self.child_Q() + self.child_U() + 1000 * self.state.get_legal_actions())
+        # add this to prevent self.child_Q() + self.child_U() < 0, others is == 0, which cloud take illegal action
+        return np.argmax(self.child_Q() + self.child_U() + 1000 * self.state.get_legal_actions())
 
     def select_leaf(self):
         node = self
@@ -75,28 +87,45 @@ class MCTSNode:
         if self.is_expanded:
             return
         self.is_expanded = True
-        self.child_priors = child_prior_probabilities
+        # normalize
+        priors = np.multiply(child_prior_probabilities, self.state.get_legal_actions())
+        normalized = priors/np.sum(priors)
+
+        self.child_priors = normalized
 
     def back_update(self, value):
         node = self
         # TODO: 用 game 里面的 who player lai 确定正负
         factor = 1
         # check if node is root
-        while node.parent is not None:
+        while True:
             node.N += 1
             node.W += (value*factor)
+
+            if node.is_search_root:
+                break
+
             node = node.parent
             factor = factor * -1
 
     # FOR bias
+    # TODO: add noise
     def children_pi(self, temperature):
         # todo: check possible move
+        # TODO: maybe overflow here
+        # /Users/Nero/local_dev/nyu/ml/ml-proj/mcts.py:104: RuntimeWarning: overflow encountered in power
+        #   probs = self.child_number_visits ** (1 / temperature)
+        # /Users/Nero/local_dev/nyu/ml/ml-proj/mcts.py:111: RuntimeWarning: invalid value encountered in true_divide
+        #   self.pi = probs/sum_probs
         probs = self.child_number_visits ** (1 / temperature)
         sum_probs = np.sum(probs)
-        if sum_probs == 0:
+        if sum_probs == 0 or self.state.need_pass():
             # TODO: if this return pass move
-            return probs
-        return probs/sum_probs
+            self.pi = np.zeros([TOTAL_POSSIBLE_MOVE], dtype=np.float)
+            self.pi[PASS_MOVE] = 1
+        else:
+            self.pi = probs/sum_probs
+        return self.pi
 
     # TODO: add noise
 
@@ -118,26 +147,78 @@ def UCT_search(state, num_reads):
     return np.argmax(root.child_number_visits)
 
 
+class MCTS:
+    def __init__(self, nn):
+        self.nn = nn
+        sentinel_node = SentinelNode()
+        self.root = MCTSNode(GameState.INIT_State(), PASS_MOVE, sentinel_node)
+        self.root.is_game_root = True
+        self.root.is_search_root = True
+        self.current_node = self.root
+        self.move_num = 0
+
+    def search(self, num_sims):
+        for _ in range(num_sims):
+            leaf = self.current_node.select_leaf()
+            child_priors, value_estimate = self.nn.evaluate(leaf.state.to_features())
+            # TODO: mask probs?
+            leaf.expand(child_priors)
+            leaf.back_update(value_estimate)
+
+    def take_move(self):
+        pi = self.current_node.children_pi(self.temperature)
+        move = pi.argmax()
+        self.current_node = self.current_node.maybe_add_child(move)
+        self.current_node.is_search_root = True
+
+        if self.current_node.is_terminal:
+            print("Termail")
+            print("WINNER: {}".format(self.current_node.state.winner()))
+            assert False
+        self.move_num += 1
+
+    def normalize_with_legal_moves(self, child_priors, legal_moves):
+        legal_probs = np.multiply(child_priors, legal_moves)
+        return legal_probs/np.sum(legal_probs)
+
+
+    # TODO: check temperature strategy
+    @property
+    def temperature(self):
+        if self.move_num <= 10:
+            return 1
+        else:
+            return 0.9**(self.move_num - 10)
+
+
 class NeuralNet:
-    @classmethod
-    def evaluate(self, game_state):
-        return np.random.random([BOARD_SIZE_LEN+1]), np.random.random()
+    def evaluate(self, features):
+        value = np.random.random()*2 -1
+        return np.random.random([TOTAL_POSSIBLE_MOVE]), value
 
 
-class GameState:
-    def __init__(self, to_play=1):
-        self.to_play = to_play
-
-    def take_move(self, move):
-        return GameState(-self.to_play)
+# class GameState:
+#     def __init__(self, to_play=1):
+#         self.to_play = to_play
+#
+#     def take_move(self, move):
+#         return GameState(-self.to_play)
 
 
 if __name__ == '__main__':
-    num_reads = 10000
-    import time
-    tick = time.time()
-    UCT_search(GameState(), num_reads)
-    tock = time.time()
-    print("Took %s sec to run %s times" % (tock - tick, num_reads))
-    import resource
-    print("Consumed %sB memory" % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    num_reads = 500
+    # import time
+    # tick = time.time()
+    # UCT_search(GameState(), num_reads)
+    # tock = time.time()
+    # print("Took %s sec to run %s times" % (tock - tick, num_reads))
+    # import resource
+    # print("Consumed %sB memory" % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+
+    mcts = MCTS(NeuralNet())
+    move_num = 1
+    while True:
+        print("Move id {}".format(move_num))
+        mcts.search(num_reads)
+        mcts.take_move()
+        move_num+=1

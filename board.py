@@ -16,7 +16,7 @@ class Player(Enum):
 BLACK_START = np.uint64(0b1000 << 32 | 0b10000 << 24)
 WHITE_START = np.uint64(0b1000 << 24 | 0b10000 << 32)
 
-FINAL_BIT = np.uint64((1 << 64) - 1)
+FINAL_BIT = ~np.uint64(0)
 
 BOARD_SIDE = 8
 BOARD_SIZE_LEN = BOARD_SIDE*BOARD_SIDE
@@ -54,10 +54,9 @@ class ReversiBoard:
         legal_moves = bit_to_1d_array(get_legal_moves_bit(self_s, rival_s), BOARD_SIZE_LEN)
         return legal_moves
 
-    def get_legal_actions(self, player: Player):
+    def get_legal_actions_bits(self, player: Player):
         self_s, rival_s = self.get_self_rival_bit_tuple(player)
-        legal_moves = bit_to_1d_array(get_legal_moves_bit(self_s, rival_s), BOARD_SIZE_LEN)
-        return legal_moves
+        return get_legal_moves_bit(self_s, rival_s)
 
     def get_legal_actions_in_numbers(self, player: Player):
         actions = self.get_legal_actions(player)
@@ -211,17 +210,55 @@ def bit_count(bit):
 
 
 class GameState:
+    @staticmethod
+    def INIT_State():
+        board = ReversiBoard()
+        return GameState(board, Player.BLACK)
+
     def __init__(self, board: ReversiBoard, to_player: Player):
         self.board = board
         self.to_player = to_player
 
+    def is_legal_action(self, move):
+        return self.get_legal_actions()[move]
+
     def take_move(self, move):
+        # TODO:
+        # maybe use variable to store get_legal_actions
+        # or delete check
+        if self.get_legal_actions()[move] == 0:
+            raise Exception("not legal action")
         new_board = self.board.task_move(self.to_player, move)
         return GameState(new_board, self.to_player.rival())
 
     @property
     def is_terminal(self):
         return (self.board.white_bit | self.board.black_bit) == FINAL_BIT
+
+    # 65*1 one is pass move
+    def get_legal_actions(self):
+        legal_actions = self.board.get_legal_actions(self.to_player)
+        if np.sum(legal_actions) == 0:
+            return np.concatenate((legal_actions, [1]))
+        else:
+            return np.concatenate((legal_actions, [0]))
+
+    def need_pass(self):
+        return self.board.get_legal_actions_bits(self.to_player) == 0
+
+    def to_features(self):
+        return []
+
+    def winner(self):
+        if self.is_terminal:
+            if self.board.white_2d.sum() > self.board.black_2d.sum():
+                return Player.WHITE
+            elif self.board.white_2d.sum() < self.board.black_2d.sum():
+                return Player.BLACK
+            else:
+                return "TIE"
+        else:
+            return None
 
 
 if __name__ == '__main__':
