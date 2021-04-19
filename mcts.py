@@ -76,12 +76,15 @@ class MCTSNode:
         return C_PUCT*math.sqrt(self.N) * (p_with_noise / (1 + self.child_number_visits))
 
     def best_child(self):
-        if self.is_search_root:
-            # for search root add noise
-            return np.argmax(self.child_Q() + self.child_U_inject_noise() + 1000 * self.state.get_legal_actions())
-        else:
-            # add this to prevent self.child_Q() + self.child_U() < 0, others is == 0, which cloud take illegal action
-            return np.argmax(self.child_Q() + self.child_U() + 1000 * self.state.get_legal_actions())
+        # if self.is_search_root:
+        #     # for search root add noise
+        #     return np.argmax(self.child_Q() + self.child_U_inject_noise() + 1000 * self.state.get_legal_actions())
+        # else:
+        #     # add this to prevent self.child_Q() + self.child_U() < 0, others is == 0, which cloud take illegal action
+        #     return np.argmax(self.child_Q() + self.child_U() + 1000 * self.state.get_legal_actions())
+
+        # TODO: where to add noise
+        return np.argmax(self.child_Q() + self.child_U() + 1000 * self.state.get_legal_actions())
 
     def select_leaf(self):
         node = self
@@ -173,6 +176,9 @@ class MCTS:
     def search(self, num_sims):
         for _ in range(num_sims):
             leaf = self.current_node.select_leaf()
+            if leaf.is_terminal:
+                leaf.back_update(leaf.state.winner_score())
+                continue
             child_priors, value_estimate = self.nn.evaluate(leaf.state.to_features())
             # TODO: mask probs?
             leaf.expand(child_priors)

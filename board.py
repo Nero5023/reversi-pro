@@ -260,6 +260,19 @@ class GameState:
         else:
             return None
 
+    # BLACK win: +1
+    # White win: -1
+    def winner_score(self):
+        if self.is_terminal:
+            if self.board.white_2d.sum() > self.board.black_2d.sum():
+                return -1
+            elif self.board.white_2d.sum() < self.board.black_2d.sum():
+                return 1
+            else:
+                return 0
+        else:
+            return 0
+
     @property
     def to_play_factor(self):
         if self.to_play == Player.BLACK:
