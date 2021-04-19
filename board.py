@@ -215,9 +215,9 @@ class GameState:
         board = ReversiBoard()
         return GameState(board, Player.BLACK)
 
-    def __init__(self, board: ReversiBoard, to_player: Player):
+    def __init__(self, board: ReversiBoard, to_play: Player):
         self.board = board
-        self.to_player = to_player
+        self.to_play = to_play
 
     def is_legal_action(self, move):
         return self.get_legal_actions()[move]
@@ -228,8 +228,8 @@ class GameState:
         # or delete check
         if self.get_legal_actions()[move] == 0:
             raise Exception("not legal action")
-        new_board = self.board.task_move(self.to_player, move)
-        return GameState(new_board, self.to_player.rival())
+        new_board = self.board.task_move(self.to_play, move)
+        return GameState(new_board, self.to_play.rival())
 
     @property
     def is_terminal(self):
@@ -237,14 +237,14 @@ class GameState:
 
     # 65*1 one is pass move
     def get_legal_actions(self):
-        legal_actions = self.board.get_legal_actions(self.to_player)
+        legal_actions = self.board.get_legal_actions(self.to_play)
         if np.sum(legal_actions) == 0:
             return np.concatenate((legal_actions, [1]))
         else:
             return np.concatenate((legal_actions, [0]))
 
     def need_pass(self):
-        return self.board.get_legal_actions_bits(self.to_player) == 0
+        return self.board.get_legal_actions_bits(self.to_play) == 0
 
     def to_features(self):
         return []
@@ -259,6 +259,13 @@ class GameState:
                 return "TIE"
         else:
             return None
+
+    @property
+    def to_play_factor(self):
+        if self.to_play == Player.BLACK:
+            return 1
+        else:
+            return -1
 
 
 if __name__ == '__main__':

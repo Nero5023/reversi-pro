@@ -61,10 +61,9 @@ class MCTSNode:
 
     def child_Q(self):
         # return self.child_total_values / (1+self.child_number_visits)
-        return self.child_total_values / (self.child_number_visits + (self.child_number_visits == 0))
+        return self.child_total_values * self.state.to_play_factor / (self.child_number_visits + (self.child_number_visits == 0))
 
     def child_U(self):
-        # TODO: add more rules for U, check miniGO
         # self.edge_P * math.sqrt(max(1, self.self_N)) / (1 + self.edge_N)
         return C_PUCT*math.sqrt(self.N) * (self.child_priors / (1 + self.child_number_visits))
 
@@ -109,21 +108,18 @@ class MCTSNode:
         self.child_priors = normalized
 
     def back_update(self, value):
+        # TODO: Check minigo mcts.py line 210
+        # value = 1, black win
+        # value = -1, white win
         node = self
-        # TODO: 用 game 里面的 who player lai 确定正负
-        factor = 1
         # check if node is root
         while True:
             node.N += 1
-            node.W += (value*factor)
+            node.W += value
 
             if node.is_search_root:
                 break
-            # if node.parent.parent is None:
-            #     break
-
             node = node.parent
-            factor = factor * -1
 
     # FOR bias
     # TODO: add noise
@@ -163,7 +159,7 @@ def UCT_search(state, num_reads):
         leaf.back_update(value_estimate)
     return np.argmax(root.child_number_visits)
 
-
+# TODO: virtual loss for parallel tree search
 class MCTS:
     def __init__(self, nn):
         self.nn = nn
