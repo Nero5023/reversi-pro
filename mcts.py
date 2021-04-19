@@ -10,9 +10,13 @@ from collections import defaultdict
 
 TOTAL_POSSIBLE_MOVE = BOARD_SIZE_LEN + 1
 
+# TODO: add config file
+
 # c_puct
 # find a best C_PUCT
 C_PUCT = 1
+NOISE_EPSILON = 0.25
+NOISE_ALPHA = 0.17
 
 class MCTSNode:
     def __init__(self, state: GameState, move, parent=None):
@@ -64,10 +68,21 @@ class MCTSNode:
         # self.edge_P * math.sqrt(max(1, self.self_N)) / (1 + self.edge_N)
         return C_PUCT*math.sqrt(self.N) * (self.child_priors / (1 + self.child_number_visits))
 
+    def child_U_inject_noise(self):
+        epsilon = 1e-5
+        legal_moves = self.state.get_legal_actions() + epsilon
+        alphas = legal_moves * ([NOISE_ALPHA] * TOTAL_POSSIBLE_MOVE)
+        noise = np.random.dirichlet(alphas)
+        p_with_noise = self.child_priors*(1-NOISE_EPSILON) + noise + NOISE_EPSILON
+        return C_PUCT*math.sqrt(self.N) * (p_with_noise / (1 + self.child_number_visits))
+
     def best_child(self):
-        a = np.argmax(self.child_Q() + self.child_U() + 1000 * self.state.get_legal_actions())
-        # add this to prevent self.child_Q() + self.child_U() < 0, others is == 0, which cloud take illegal action
-        return np.argmax(self.child_Q() + self.child_U() + 1000 * self.state.get_legal_actions())
+        if self.is_search_root:
+            # for search root add noise
+            return np.argmax(self.child_Q() + self.child_U_inject_noise() + 1000 * self.state.get_legal_actions())
+        else:
+            # add this to prevent self.child_Q() + self.child_U() < 0, others is == 0, which cloud take illegal action
+            return np.argmax(self.child_Q() + self.child_U() + 1000 * self.state.get_legal_actions())
 
     def select_leaf(self):
         node = self
@@ -104,6 +119,8 @@ class MCTSNode:
 
             if node.is_search_root:
                 break
+            # if node.parent.parent is None:
+            #     break
 
             node = node.parent
             factor = factor * -1
@@ -173,6 +190,7 @@ class MCTS:
 
         if self.current_node.is_terminal:
             print("Termail")
+            print(self.current_node.state.board.to_str())
             print("WINNER: {}".format(self.current_node.state.winner()))
             assert False
         self.move_num += 1
@@ -188,7 +206,7 @@ class MCTS:
         if self.move_num <= 10:
             return 1
         else:
-            return 0.9**(self.move_num - 10)
+            return 0.95**(self.move_num - 10)
 
 
 class NeuralNet:
@@ -220,5 +238,6 @@ if __name__ == '__main__':
     while True:
         print("Move id {}".format(move_num))
         mcts.search(num_reads)
+        print(mcts.current_node.state.board.to_str())
         mcts.take_move()
         move_num+=1
