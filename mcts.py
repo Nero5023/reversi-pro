@@ -123,7 +123,7 @@ class MCTSNode:
             if node.is_game_root:
                 break
             node = node.parent
-        me_l, rival_l = node.state.board.get_legal_actions(player)
+        me_l, rival_l = self.state.board.get_self_rival_legal_action_2d_tuple(player)
         features[history_num*2] = me_l
         features[history_num * 2 + 1] = rival_l
         if player == Player.BLACK:
@@ -201,7 +201,7 @@ class MCTS:
             if leaf.is_terminal:
                 leaf.back_update(leaf.state.winner_score())
                 continue
-            child_priors, value_estimate = self.nn.evaluate(leaf.state.to_features())
+            child_priors, value_estimate = self.nn.evaluate(leaf.to_features())
             # TODO: mask probs?
             leaf.expand(child_priors)
             leaf.back_update(value_estimate)
