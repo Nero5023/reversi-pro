@@ -4,7 +4,7 @@ import math
 # N: number visit
 #
 
-from board import BOARD_SIZE_LEN, PASS_MOVE, ReversiBoard, GameState
+from board import BOARD_SIZE_LEN, PASS_MOVE, ReversiBoard, GameState, BOARD_SIDE, Player
 import numpy as np
 from collections import defaultdict
 
@@ -110,6 +110,26 @@ class MCTSNode:
 
         self.child_priors = normalized
 
+    def to_features(self):
+        history_num = 2
+        num_of_features = 7
+        player = self.state.to_play
+        features = np.zeros([7, BOARD_SIDE, BOARD_SIDE], dtype=np.float)
+        node = self
+        for i in range(history_num):
+            me, rival = node.state.board.get_self_rival_array2d_tuple(player)
+            features[2*i] = me
+            features[2*i+1] = rival
+            if node.is_game_root:
+                break
+            node = node.parent
+        me_l, rival_l = node.state.board.get_legal_actions(player)
+        features[history_num*2] = me_l
+        features[history_num * 2 + 1] = rival_l
+        if player == Player.BLACK:
+            features[-1] = np.ones([BOARD_SIDE, BOARD_SIDE], dtype=np.float)
+        return features
+
     def back_update(self, value):
         # TODO: Check minigo mcts.py line 210
         # value = 1, black win
@@ -162,6 +182,7 @@ def UCT_search(state, num_reads):
         leaf.back_update(value_estimate)
     return np.argmax(root.child_number_visits)
 
+
 # TODO: virtual loss for parallel tree search
 class MCTS:
     def __init__(self, nn):
@@ -172,6 +193,7 @@ class MCTS:
         self.root.is_search_root = True
         self.current_node = self.root
         self.move_num = 0
+        self.winner = None
 
     def search(self, num_sims):
         for _ in range(num_sims):
@@ -194,6 +216,7 @@ class MCTS:
             print("Termail")
             print(self.current_node.state.board.to_str())
             print("WINNER: {}".format(self.current_node.state.winner()))
+            self.winner = self.current_node.state.winner()
             assert False
         self.move_num += 1
 

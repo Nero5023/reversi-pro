@@ -22,6 +22,8 @@ BOARD_SIDE = 8
 BOARD_SIZE_LEN = BOARD_SIDE*BOARD_SIDE
 PASS_MOVE = BOARD_SIZE_LEN
 
+HISTORY_NUM = 2
+
 
 # TODO: Handle pass move
 class ReversiBoard:
@@ -53,6 +55,11 @@ class ReversiBoard:
         self_s, rival_s = self.get_self_rival_bit_tuple(player)
         legal_moves = bit_to_1d_array(get_legal_moves_bit(self_s, rival_s), BOARD_SIZE_LEN)
         return legal_moves
+
+    def get_self_rival_legal_action_2d_tuple(self, player: Player):
+        self_l = self.get_legal_actions(player)
+        rival_l = self.get_legal_actions(player.rival())
+        return self_l.reshape((BOARD_SIDE, BOARD_SIDE)), rival_l.reshape((BOARD_SIDE, BOARD_SIDE))
 
     def get_legal_actions_bits(self, player: Player):
         self_s, rival_s = self.get_self_rival_bit_tuple(player)
@@ -246,8 +253,6 @@ class GameState:
     def need_pass(self):
         return self.board.get_legal_actions_bits(self.to_play) == 0
 
-    def to_features(self):
-        return []
 
     def winner(self):
         if self.is_terminal:
