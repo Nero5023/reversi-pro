@@ -45,7 +45,7 @@ def load_model_with_version(version):
 def delete_model(current_version):
     if current_version < 10:
         return
-    if current_version % 50 == 0:
+    if current_version % 10 == 0:
         return
     delete_version = current_version - 10
     fn = CHECK_POINT_FN_TEM.format(delete_version)
@@ -102,7 +102,7 @@ def train_worker(data, version):
     nn.train(data)
     new_version = 0
     if version is not None:
-        new_version += 1
+        new_version = version + 1
     nn.save_checkpoint(filename=CHECK_POINT_FN_TEM.format(new_version))
 
 
