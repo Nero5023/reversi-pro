@@ -2,7 +2,7 @@ from util import dotdict
 #########################################################
 # self play
 #########################################################
-self_play_epoch_max = 2
+self_play_epoch_max = 1
 # simulations num per search
 simu_num = 400
 self_play_batch_size = 16
