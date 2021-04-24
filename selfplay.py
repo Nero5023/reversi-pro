@@ -37,7 +37,7 @@ class SelfPlay:
             move = mcts.pick_move()
             mcts.take_move(move)
             print("Move iter: {}".format(iter))
-            iter+=1
+            iter += 1
         return mcts
 
 

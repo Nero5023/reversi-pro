@@ -165,6 +165,41 @@ class MCTSNode:
 
     # TODO: add noise
 
+    def generate_flip_rotate_data(self, winner_z):
+        """
+        generate the data set by rotation and flipping
+        :param state: np array: feature_nums x board_size x board_size
+        :param pi:
+        :param winner_z: 1: black win   -1: white win
+        :return: extended features [(state_features, pi, winner_z),...]
+        """
+        features = self.to_features()
+        pi = self.pi
+        extended = []
+        for i in [0, 1, 2, 3]:
+            # rotate
+            new_state = np.array([np.rot90(s, i) for s in features])
+            pi_without_pass = pi[:-1].reshape(BOARD_SIDE, BOARD_SIDE)
+            new_pi = np.rot90(pi_without_pass, i)
+            extended.append(
+                (
+                    new_state,
+                    np.append(new_pi.flatten(), pi[-1]),
+                    winner_z
+                )
+            )
+            # flip left right(mirror)
+            new_state_mirror = np.array([np.fliplr(s) for s in new_state])
+            new_pi_mirror = np.fliplr(new_pi)
+            extended.append(
+                (
+                    new_state_mirror,
+                    np.append(new_pi_mirror.flatten(), pi[-1]),
+                    winner_z
+                )
+            )
+        return extended
+
 
 class SentinelNode(object):
     def __init__(self):
@@ -221,17 +256,14 @@ class MCTS:
             print("WINNER: {}".format(self.current_node.state.winner()))
             self.winner = self.current_node.state.winner()
 
-
     def pick_move(self):
         pi = self.current_node.children_pi(self.temperature)
         move = pi.argmax()
         return move
 
-
     def normalize_with_legal_moves(self, child_priors, legal_moves):
         legal_probs = np.multiply(child_priors, legal_moves)
         return legal_probs/np.sum(legal_probs)
-
 
     # TODO: check temperature strategy
     @property
@@ -256,46 +288,13 @@ class MCTS:
         node = self.current_node
         data = []
         while True:
-            extend_datas = generate_flip_rotate_data(node.to_features(), node.pi, winner_z)
+            # extend_datas = generate_flip_rotate_data(node.to_features(), node.pi, winner_z)
+            extend_datas = node.generate_flip_rotate_data(winner_z)
             data.extend(extend_datas)
             if node.is_game_root:
                 break
             node = node.parent
         return data
-
-
-def generate_flip_rotate_data(state, pi, winner_z):
-    """
-    generate the data set by rotation and flipping
-    :param state: np array: feature_nums x board_size x board_size
-    :param pi:
-    :param winner_z:
-    :return: extended features [(state_features, pi, winner_z),...]
-    """
-    extended = []
-    for i in [0, 1, 2, 3]:
-        # rotate
-        new_state = np.array([np.rot90(s, i) for s in state])
-        pi_without_pass = pi[:-1].reshape(BOARD_SIDE, BOARD_SIDE)
-        new_pi = np.rot90(pi_without_pass, i)
-        extended.append(
-            (
-                new_state,
-                np.append(new_pi.flatten(), pi[-1]),
-                winner_z
-            )
-        )
-        # flip left right(mirror)
-        new_state_mirror = np.array([np.fliplr(s) for s in new_state])
-        new_pi_mirror = np.fliplr(new_pi)
-        extended.append(
-            (
-                new_state_mirror,
-                np.append(new_pi_mirror.flatten(), pi[-1]),
-                winner_z
-            )
-        )
-    return extended
 
 
 
