@@ -1,5 +1,96 @@
+from multiprocessing import Pool, Process
+from nnet import NeuralNet
+from selfplay import SelfPlayBatch
+from config import game_config
+import config
+import os
+from multiprocessing import Pool, Process
+import json
+from util import flatten
 
+BEST_CHECKPOINT_FN = "best_model.pth.tar"
+
+CHECK_POINT_FN_TEM = 'model_v{}.tar'
+
+
+def load_train_status():
+    file_path = config.train_status_path
+    if os.path.isfile(file_path):
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+    else:
+        data = config.train_status_default.copy()
+    return data
+
+
+def save_train_status(data):
+    file_path = config.train_status_path
+    if os.path.isfile(file_path):
+        with open(file_path, 'w') as f:
+            json.dump(data, f)
+
+
+def load_model_with_version(version):
+    nn = NeuralNet(game_config)
+    if version is None:
+        return nn
+    fn = CHECK_POINT_FN_TEM.format(version)
+    f_path = 'checkpoint/' + fn
+    if os.path.isfile(f_path):
+        nn.load_checkpoint(fn)
+        return nn
+    raise Exception("Model {} not found.".format(f_path))
 
 class TrainPipe:
-    def __init__(self):
-        pass
+    def __init__(self, parallel_num=config.self_play_parallel_num):
+        self.train_status = load_train_status()
+        self.parallel_num = parallel_num
+
+    @property
+    def version(self):
+        return self.train_status.get('version', None)
+
+    @version.setter
+    def version(self, value):
+        self.train_status['version'] = value
+
+    def start(self):
+        while True:
+            pool = Pool(config.self_play_parallel_num)
+            # for i in range(config.self_play_parallel_num):
+            #     pool.apply_async(self.self_play_game, (i, self.version))
+            datas = pool.map(self_play_game_worker, [(i, self.version) for i in range(self.parallel_num)])
+            pool.close()
+            pool.join()
+
+            datas = flatten(datas)
+
+            process = Process(target=train_worker, args=(datas, self.version))
+            process.start()
+            process.join()
+            if self.version is None:
+                self.version = 0
+            self.version = self.version + 1
+            save_train_status(self.train_status)
+
+
+def self_play_game_worker(arg):
+    i, version = arg
+    nn = load_model_with_version(version)
+    game = SelfPlayBatch(nn)
+    game.start()
+    return game.game_data
+
+
+def train_worker(data, version):
+    nn = load_model_with_version(version)
+    nn.train(data)
+    new_version = 0
+    if version is not None:
+        new_version += 1
+    nn.save_checkpoint(CHECK_POINT_FN_TEM.format(new_version))
+
+
+if __name__ == '__main__':
+    train = TrainPipe()
+    train.start()

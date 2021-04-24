@@ -3,22 +3,17 @@ from util import dotdict
 from board import BOARD_SIDE
 from mcts import TOTAL_POSSIBLE_MOVE, MCTS, NeuralNetRandom, MCTSBatch
 import config
+from config import game_config
 
 # Handle problem OMP: Error #15: Initializing libiomp5.dylib, but found libomp.dylib already initialized
 import os
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
-game_config = dotdict({
-    "board_size": (BOARD_SIDE, BOARD_SIDE),
-    "action_size":  TOTAL_POSSIBLE_MOVE,
-    "feature_channels": 7
-})
-
 
 class SelfPlay:
-    def __init__(self, epoch_max=config.self_play_epoch_max, simu_num=config.simu_num):
+    def __init__(self, nn, epoch_max=config.self_play_epoch_max, simu_num=config.simu_num):
         # self.nn = NeuralNet(game_config)
-        self.nn = NeuralNetRandom()
+        self.nn = nn
         self.epoch_max = epoch_max
         self.simu_num = simu_num
         self.game_data = []
@@ -42,11 +37,11 @@ class SelfPlay:
 
 
 class SelfPlayBatch:
-    def __init__(self,
+    def __init__(self, nn,
                  epoch_max=config.self_play_epoch_max,
                  simu_num=config.simu_num,
                  batch_size=config.self_play_batch_size):
-        self.nn = NeuralNet(game_config)
+        self.nn = nn
         self.epoch_max = epoch_max
         self.simu_num = simu_num
         self.game_data = []
@@ -69,7 +64,7 @@ class SelfPlayBatch:
 
 
 if __name__ == '__main__':
-    s = SelfPlay()
+    s = SelfPlayBatch(NeuralNet(game_config))
     s.start()
 
 

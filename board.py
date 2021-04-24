@@ -240,7 +240,9 @@ class GameState:
 
     @property
     def is_terminal(self):
-        return (self.board.white_bit | self.board.black_bit) == FINAL_BIT
+        if (self.board.white_bit | self.board.black_bit) == FINAL_BIT:
+            return True
+        return self.board.get_legal_actions_bits(Player.BLACK) == 0 and self.board.get_legal_actions_bits(Player.WHITE) == 0
 
     # 65*1 one is pass move
     def get_legal_actions(self):
