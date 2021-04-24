@@ -19,6 +19,13 @@ NOISE_EPSILON = 0.25
 NOISE_ALPHA = 0.17
 FEATURE_NUM = 7
 
+
+def softmax(x):
+    probs = np.exp(x - np.max(x))
+    probs /= np.sum(probs)
+    return probs
+
+
 class MCTSNode:
     def __init__(self, state: GameState, move, parent=None):
         self.state = state
@@ -157,14 +164,16 @@ class MCTSNode:
         #   probs = self.child_number_visits ** (1 / temperature)
         # /Users/Nero/local_dev/nyu/ml/ml-proj/mcts.py:111: RuntimeWarning: invalid value encountered in true_divide
         #   self.pi = probs/sum_probs
-        probs = self.child_number_visits ** (1 / temperature)
-        sum_probs = np.sum(probs)
-        if sum_probs == 0 or self.state.need_pass():
+        if np.sum(self.child_number_visits) == 0 or self.state.need_pass():
             # TODO: if this return pass move
             self.pi = np.zeros([TOTAL_POSSIBLE_MOVE], dtype=np.float)
             self.pi[PASS_MOVE] = 1
         else:
-            self.pi = probs/sum_probs
+            # probs = self.child_number_visits ** (1 / temperature)
+            # sum_probs = np.sum(probs)
+            # self.pi = probs/sum_probs
+            pi = softmax(1.0/temperature * np.log(self.child_number_visits + 1e-10))
+            self.pi = pi
         return self.pi
 
     # TODO: add noise
