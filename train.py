@@ -40,6 +40,19 @@ def load_model_with_version(version):
         return nn
     raise Exception("Model {} not found.".format(f_path))
 
+
+def delete_model(current_version):
+    if current_version < 10:
+        return
+    if current_version % 50 == 0:
+        return
+    delete_version = current_version - 10
+    fn = CHECK_POINT_FN_TEM.format(delete_version)
+    f_path = 'checkpoint/' + fn
+    if os.path.isfile(f_path):
+        os.remove(f_path)
+
+
 class TrainPipe:
     def __init__(self, parallel_num=config.self_play_parallel_num):
         self.train_status = load_train_status()
@@ -72,6 +85,7 @@ class TrainPipe:
             else:
                 self.version = self.version + 1
             save_train_status(self.train_status)
+            delete_model(self.version)
 
 
 def self_play_game_worker(arg):
