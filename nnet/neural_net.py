@@ -142,6 +142,7 @@ class NeuralNet:
             os.mkdir(folder)
         else:
             print("Checkpoint Directory exists! ")
+        print("save to file: {}!".format(filepath))
         torch.save({
             'state_dict': self.nnet.state_dict(),
         }, filepath)

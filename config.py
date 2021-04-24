@@ -5,7 +5,7 @@ from util import dotdict
 self_play_epoch_max = 1
 # simulations num per search
 simu_num = 400
-self_play_batch_size = 16
+self_play_batch_size = 32
 self_play_parallel_num = 8
 
 # play the game of the num of simulations

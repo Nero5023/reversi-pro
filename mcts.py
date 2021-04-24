@@ -172,6 +172,7 @@ class MCTSNode:
             # probs = self.child_number_visits ** (1 / temperature)
             # sum_probs = np.sum(probs)
             # self.pi = probs/sum_probs
+            # TODO: check if this correct
             pi = softmax(1.0/temperature * np.log(self.child_number_visits + 1e-10))
             self.pi = pi
         return self.pi
