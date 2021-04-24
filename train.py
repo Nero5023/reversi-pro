@@ -25,9 +25,8 @@ def load_train_status():
 
 def save_train_status(data):
     file_path = config.train_status_path
-    if os.path.isfile(file_path):
-        with open(file_path, 'w') as f:
-            json.dump(data, f)
+    with open(file_path, 'w') as f:
+        json.dump(data, f)
 
 
 def load_model_with_version(version):
@@ -37,7 +36,7 @@ def load_model_with_version(version):
     fn = CHECK_POINT_FN_TEM.format(version)
     f_path = 'checkpoint/' + fn
     if os.path.isfile(f_path):
-        nn.load_checkpoint(fn)
+        nn.load_checkpoint(filename=fn)
         return nn
     raise Exception("Model {} not found.".format(f_path))
 
@@ -70,7 +69,8 @@ class TrainPipe:
             process.join()
             if self.version is None:
                 self.version = 0
-            self.version = self.version + 1
+            else:
+                self.version = self.version + 1
             save_train_status(self.train_status)
 
 

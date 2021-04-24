@@ -44,7 +44,7 @@ class NeuralNet:
         """
         examples: list of examples, each example is of form (board, pi, v)
         """
-        with open(net_config.log_path + "loss_log.csv", "a+") as loss_log_file:
+        with open(net_config.log_path + '/' + "loss_log.csv", "a+") as loss_log_file:
 
             optimizer = optim.Adam(self.nnet.parameters(), weight_decay=net_config.l2_constant)
 
