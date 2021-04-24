@@ -69,7 +69,7 @@ class ReversiBoard:
         actions = self.get_legal_actions(player)
         return np.where(actions == 1)
 
-    def task_move(self, player: Player, move):
+    def take_move(self, player: Player, move):
         if move == PASS_MOVE:
             return ReversiBoard(self.black_bit, self.white_bit)
         bit_move = np.uint64(0b1 << move)
@@ -235,7 +235,7 @@ class GameState:
         # or delete check
         if self.get_legal_actions()[move] == 0:
             raise Exception("not legal action")
-        new_board = self.board.task_move(self.to_play, move)
+        new_board = self.board.take_move(self.to_play, move)
         return GameState(new_board, self.to_play.rival())
 
     @property
@@ -252,7 +252,6 @@ class GameState:
 
     def need_pass(self):
         return self.board.get_legal_actions_bits(self.to_play) == 0
-
 
     def winner(self):
         if self.is_terminal:
@@ -291,4 +290,4 @@ if __name__ == '__main__':
     print(b.get_legal_actions(Player.BLACK))
     print(b.get_legal_actions_in_numbers(Player.BLACK))
     print(b.to_str(Player.BLACK))
-    print(b.task_move(Player.BLACK, 44).to_str(Player.WHITE))
+    print(b.take_move(Player.BLACK, 44).to_str(Player.WHITE))

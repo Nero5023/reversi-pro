@@ -177,7 +177,7 @@ def UCT_search(state, num_reads):
     root = MCTSNode(state, move=None, parent=SentinelNode())
     for _ in range(num_reads):
         leaf = root.select_leaf()
-        child_priors, value_estimate = NeuralNet.evaluate(leaf.state)
+        child_priors, value_estimate = NeuralNetRandom.evaluate(leaf.state)
         leaf.expand(child_priors)
         leaf.back_update(value_estimate)
     return np.argmax(root.child_number_visits)
@@ -201,24 +201,32 @@ class MCTS:
             if leaf.is_terminal:
                 leaf.back_update(leaf.state.winner_score())
                 continue
-            child_priors, value_estimate = self.nn.evaluate(leaf.to_features())
+            child_priors, value_estimate = self.nn.predict(leaf.to_features())
             # TODO: mask probs?
             leaf.expand(child_priors)
             leaf.back_update(value_estimate)
 
-    def take_move(self):
-        pi = self.current_node.children_pi(self.temperature)
-        move = pi.argmax()
+    def take_move(self, move):
+        # pi = self.current_node.children_pi(self.temperature)
+        # move = pi.argmax()
         self.current_node = self.current_node.maybe_add_child(move)
         self.current_node.is_search_root = True
+        self.move_num += 1
 
         if self.current_node.is_terminal:
+            # update last node of children's pi
+            self.current_node.children_pi(self.temperature)
             print("Termail")
             print(self.current_node.state.board.to_str())
             print("WINNER: {}".format(self.current_node.state.winner()))
             self.winner = self.current_node.state.winner()
-            assert False
-        self.move_num += 1
+
+
+    def pick_move(self):
+        pi = self.current_node.children_pi(self.temperature)
+        move = pi.argmax()
+        return move
+
 
     def normalize_with_legal_moves(self, child_priors, legal_moves):
         legal_probs = np.multiply(child_priors, legal_moves)
@@ -233,9 +241,66 @@ class MCTS:
         else:
             return 0.95**(self.move_num - 10)
 
+    @property
+    def is_terminal(self):
+        return self.current_node.is_terminal
 
-class NeuralNet:
-    def evaluate(self, features):
+    def generate_game_data(self):
+        if not self.is_terminal:
+            return []
+        winner_z = 0
+        if self.winner == Player.BLACK:
+            winner_z = 1
+        elif self.winner == Player.WHITE:
+            winner_z = -1
+        node = self.current_node
+        data = []
+        while True:
+            extend_datas = generate_flip_rotate_data(node.to_features(), node.pi, winner_z)
+            data.extend(extend_datas)
+            if node.is_game_root:
+                break
+            node = node.parent
+        return data
+
+
+def generate_flip_rotate_data(state, pi, winner_z):
+    """
+    generate the data set by rotation and flipping
+    :param state: np array: feature_nums x board_size x board_size
+    :param pi:
+    :param winner_z:
+    :return: extended features [(state_features, pi, winner_z),...]
+    """
+    extended = []
+    for i in [0, 1, 2, 3]:
+        # rotate
+        new_state = np.array([np.rot90(s, i) for s in state])
+        pi_without_pass = pi[:-1].reshape(BOARD_SIDE, BOARD_SIDE)
+        new_pi = np.rot90(pi_without_pass, i)
+        extended.append(
+            (
+                new_state,
+                np.append(new_pi.flatten(), pi[-1]),
+                winner_z
+            )
+        )
+        # flip left right(mirror)
+        new_state_mirror = np.array([np.fliplr(s) for s in new_state])
+        new_pi_mirror = np.fliplr(new_pi)
+        extended.append(
+            (
+                new_state_mirror,
+                np.append(new_pi_mirror.flatten(), pi[-1]),
+                winner_z
+            )
+        )
+    return extended
+
+
+
+class NeuralNetRandom:
+    def predict(self, features):
         value = np.random.random()*2 -1
         return np.random.random([TOTAL_POSSIBLE_MOVE]), value
 
@@ -258,11 +323,12 @@ if __name__ == '__main__':
     # import resource
     # print("Consumed %sB memory" % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
-    mcts = MCTS(NeuralNet())
+    mcts = MCTS(NeuralNetRandom())
     move_num = 1
     while True:
         print("Move id {}".format(move_num))
         mcts.search(num_reads)
         print(mcts.current_node.state.board.to_str())
-        mcts.take_move()
-        move_num+=1
+        move = mcts.pick_move()
+        mcts.take_move(move)
+        move_num += 1
