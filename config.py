@@ -6,7 +6,7 @@ self_play_epoch_max = 2
 # simulations num per search
 simu_num = 400
 self_play_batch_size = 16
-self_play_parallel_num = 10
+self_play_parallel_num = 8
 
 # play the game of the num of simulations
 play_simu_num = 400
