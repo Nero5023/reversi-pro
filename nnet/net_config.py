@@ -8,3 +8,4 @@ epochs = 10
 dropout = 0.3
 l2_constant = 1e-4
 
+log_path = 'log'

@@ -40,47 +40,54 @@ class NeuralNet:
         if net_config.cuda:
             self.nnet.cuda()
 
-    def train(self, examples):
+    def train(self, examples, version=0):
         """
         examples: list of examples, each example is of form (board, pi, v)
         """
-        optimizer = optim.Adam(self.nnet.parameters(), weight_decay=net_config.l2_constant)
+        with open(net_config.log_path + "loss_log.csv", "a+") as loss_log_file:
 
-        for epoch in range(net_config.epochs):
-            print('EPOCH ::: ' + str(epoch + 1))
-            self.nnet.train()
-            pi_losses = AverageMeter()
-            v_losses = AverageMeter()
+            optimizer = optim.Adam(self.nnet.parameters(), weight_decay=net_config.l2_constant)
 
-            batch_count = int(len(examples) / net_config.batch_size)
+            for epoch in range(net_config.epochs):
+                print('EPOCH ::: ' + str(epoch + 1))
+                self.nnet.train()
+                pi_losses = AverageMeter()
+                v_losses = AverageMeter()
 
-            t = tqdm(range(batch_count), desc='Training Net')
-            for _ in t:
-                sample_ids = np.random.randint(len(examples), size=net_config.batch_size)
-                boards, pis, vs = list(zip(*[examples[i] for i in sample_ids]))
-                boards = torch.FloatTensor(np.array(boards).astype(np.float64))
-                target_pis = torch.FloatTensor(np.array(pis))
-                target_vs = torch.FloatTensor(np.array(vs).astype(np.float64))
+                batch_count = int(len(examples) / net_config.batch_size)
 
-                # predict
-                if net_config.cuda:
-                    boards, target_pis, target_vs = boards.contiguous().cuda(), target_pis.contiguous().cuda(), target_vs.contiguous().cuda()
+                t = tqdm(range(batch_count), desc='Training Net')
+                step = 0
+                for _ in t:
+                    sample_ids = np.random.randint(len(examples), size=net_config.batch_size)
+                    boards, pis, vs = list(zip(*[examples[i] for i in sample_ids]))
+                    boards = torch.FloatTensor(np.array(boards).astype(np.float64))
+                    target_pis = torch.FloatTensor(np.array(pis))
+                    target_vs = torch.FloatTensor(np.array(vs).astype(np.float64))
 
-                # compute output
-                out_pi, out_v = self.nnet(boards)
-                l_pi = self.loss_pi(target_pis, out_pi)
-                l_v = self.loss_v(target_vs, out_v)
-                total_loss = l_pi + l_v
+                    # predict
+                    if net_config.cuda:
+                        boards, target_pis, target_vs = boards.contiguous().cuda(), target_pis.contiguous().cuda(), target_vs.contiguous().cuda()
 
-                # record loss
-                pi_losses.update(l_pi.item(), boards.size(0))
-                v_losses.update(l_v.item(), boards.size(0))
-                t.set_postfix(Loss_pi=pi_losses, Loss_v=v_losses)
+                    # compute output
+                    out_pi, out_v = self.nnet(boards)
+                    l_pi = self.loss_pi(target_pis, out_pi)
+                    l_v = self.loss_v(target_vs, out_v)
+                    total_loss = l_pi + l_v
 
-                # compute gradient and do SGD step
-                optimizer.zero_grad()
-                total_loss.backward()
-                optimizer.step()
+                    # log loss
+                    loss_log_file.write('{},{},{},{},{}\n'.format(version, epoch, step, l_pi, l_v))
+
+                    # record loss
+                    pi_losses.update(l_pi.item(), boards.size(0))
+                    v_losses.update(l_v.item(), boards.size(0))
+                    t.set_postfix(Loss_pi=pi_losses, Loss_v=v_losses)
+
+                    # compute gradient and do SGD step
+                    optimizer.zero_grad()
+                    total_loss.backward()
+                    optimizer.step()
+                    step += 1
 
     def predict(self, board_features):
         """
