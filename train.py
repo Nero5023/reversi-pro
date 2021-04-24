@@ -7,6 +7,7 @@ import os
 from multiprocessing import Pool, Process
 import json
 from util import flatten
+import torch
 
 BEST_CHECKPOINT_FN = "best_model.pth.tar"
 
@@ -106,5 +107,8 @@ def train_worker(data, version):
 
 
 if __name__ == '__main__':
+    if torch.cuda.is_available():
+        import torch.multiprocessing as mp
+        mp.set_start_method('spawn', force=True)
     train = TrainPipe()
     train.start()
