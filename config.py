@@ -2,11 +2,11 @@ from util import dotdict
 #########################################################
 # self play
 #########################################################
-self_play_epoch_max = 1
+self_play_epoch_max = 4
 # simulations num per search
-simu_num = 10
-self_play_batch_size = 4
-self_play_parallel_num = 4
+simu_num = 400
+self_play_batch_size = 32
+self_play_parallel_num = 8
 
 # play the game of the num of simulations
 play_simu_num = 400
