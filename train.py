@@ -99,7 +99,7 @@ def self_play_game_worker(arg):
 
 def train_worker(data, version):
     nn = load_model_with_version(version)
-    nn.train(data)
+    nn.train(data, version)
     new_version = 0
     if version is not None:
         new_version = version + 1
