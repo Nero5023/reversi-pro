@@ -22,7 +22,8 @@ class AverageMeter(object):
         self.count = 0
 
     def __repr__(self):
-        return f'{self.avg:.2e}'
+        # return f'{self.avg:.2e}'
+        return '<avg: {}>'.format(self.avg)
 
     def update(self, val, n=1):
         self.val = val
