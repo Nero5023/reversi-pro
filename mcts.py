@@ -17,6 +17,7 @@ TOTAL_POSSIBLE_MOVE = BOARD_SIZE_LEN + 1
 C_PUCT = 1
 NOISE_EPSILON = 0.25
 NOISE_ALPHA = 0.17
+FEATURE_NUM = 7
 
 class MCTSNode:
     def __init__(self, state: GameState, move, parent=None):
@@ -34,6 +35,9 @@ class MCTSNode:
         self.child_priors = np.zeros([TOTAL_POSSIBLE_MOVE], dtype=np.float32)
         self.child_total_values = np.zeros([TOTAL_POSSIBLE_MOVE], dtype=np.float32)
         self.child_number_visits = np.zeros([TOTAL_POSSIBLE_MOVE], dtype=np.float32)
+        self.height = 0
+        if parent:
+            self.height = parent.height + 1
 
     @property
     def is_terminal(self):
@@ -206,6 +210,7 @@ class SentinelNode(object):
         self.parent = None
         self.child_total_values = defaultdict(float)
         self.child_number_visits = defaultdict(float)
+        self.height = -1
 
 
 def UCT_search(state, num_reads):
@@ -296,6 +301,98 @@ class MCTS:
             node = node.parent
         return data
 
+
+def temperature_func(move_num):
+    if move_num <= 10:
+        return 1
+    else:
+        return 0.95**(move_num - 10)
+
+
+class MCTSBatch:
+    def __init__(self, nn, batch_size: int):
+        self.nn = nn
+        self.roots = []
+        self.current_nodes = []
+        self.batch_size = batch_size
+        self.terminal_count = 0
+        self.winners = [0]*batch_size
+        for i in range(batch_size):
+            sentinel_node = SentinelNode()
+            root = MCTSNode(GameState.INIT_State(), PASS_MOVE, sentinel_node)
+            root.is_game_root = True
+            root.is_search_root = True
+            self.roots.append(root)
+            self.current_nodes.append(root)
+
+    def search(self, num_sims):
+        for _ in range(num_sims):
+            # terminal_leaves = []
+            # TODO: or make all leaves to predict
+            non_terminal_leaves = []
+            for current_node in self.current_nodes:
+                leaf = current_node.select_leaf()
+                if leaf.is_terminal:
+                    leaf.back_update(leaf.state.winner_score())
+                    continue
+                non_terminal_leaves.append(leaf)
+            if len(non_terminal_leaves) == 0:
+                continue
+            batch_features = np.zeros([len(non_terminal_leaves), FEATURE_NUM, BOARD_SIDE, BOARD_SIDE], dtype=np.float)
+            for i, nt_leaf in enumerate(non_terminal_leaves):
+                batch_features[i] = nt_leaf.to_features()
+            child_priors_batch, value_estimate_batch = self.nn.predict_batch(batch_features)
+            for i, nt_leaf in enumerate(non_terminal_leaves):
+                nt_leaf.expand(child_priors_batch[i])
+                nt_leaf.back_update(value_estimate_batch[i])
+
+    def pick_moves(self):
+        return [node.children_pi(temperature_func(node.height)).argmax() for node in self.current_nodes]
+
+    def take_moves(self, moves):
+        assert len(moves) == len(self.current_nodes)
+        for i in range(len(self.current_nodes)):
+            node = self.current_nodes[i]
+            if node.is_terminal:
+                continue
+            move = moves[i]
+            self.current_nodes[i] = node.maybe_add_child(move)
+            self.current_nodes[i].is_search_root = True
+
+            if self.current_nodes[i].is_terminal:
+                # update last node of children's pi
+                self.current_nodes[i].children_pi(temperature_func(self.current_nodes[i].height))
+                self.terminal_count += 1
+                self.winners[i] = self.current_nodes[i].state.winner()
+
+    def search_and_pick_to_move(self, num_sims):
+        self.search(num_sims)
+        moves = self.pick_moves()
+        self.take_moves(moves)
+
+    @property
+    def all_terminal(self):
+        return self.terminal_count == self.batch_size
+
+    def generate_game_data(self):
+        if not self.all_terminal:
+            return []
+        data = []
+        for i in range(self.batch_size):
+            winner_z = 0
+            if self.winners[i] == Player.BLACK:
+                winner_z = 1
+            elif self.winners[i] == Player.WHITE:
+                winner_z = -1
+            node = self.current_nodes[i]
+            while True:
+                # extend_datas = generate_flip_rotate_data(node.to_features(), node.pi, winner_z)
+                extend_datas = node.generate_flip_rotate_data(winner_z)
+                data.extend(extend_datas)
+                if node.is_game_root:
+                    break
+                node = node.parent
+        return data
 
 
 class NeuralNetRandom:

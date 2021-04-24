@@ -1,7 +1,7 @@
 from nnet import NeuralNet
 from util import dotdict
 from board import BOARD_SIDE
-from mcts import TOTAL_POSSIBLE_MOVE, MCTS, NeuralNetRandom
+from mcts import TOTAL_POSSIBLE_MOVE, MCTS, NeuralNetRandom, MCTSBatch
 import config
 
 # Handle problem OMP: Error #15: Initializing libiomp5.dylib, but found libomp.dylib already initialized
@@ -31,12 +31,39 @@ class SelfPlay:
 
     def play(self):
         mcts = MCTS(self.nn)
-        iter = 0
+        iter = 1
         while not mcts.is_terminal:
             mcts.search(self.simu_num)
             move = mcts.pick_move()
             mcts.take_move(move)
-            print("Move iter: {}".format(iter))
+            print("Move iter: {}: {}".format(iter, move))
+            iter += 1
+        return mcts
+
+
+class SelfPlayBatch:
+    def __init__(self,
+                 epoch_max=config.self_play_epoch_max,
+                 simu_num=config.simu_num,
+                 batch_size=config.self_play_batch_size):
+        self.nn = NeuralNet(game_config)
+        self.epoch_max = epoch_max
+        self.simu_num = simu_num
+        self.game_data = []
+        self.batch_size = batch_size
+
+    def start(self):
+        for i in range(self.epoch_max):
+            print("epoch: {}".format(i))
+            mcts = self.play()
+            self.game_data.extend(mcts.generate_game_data())
+
+    def play(self):
+        mcts = MCTSBatch(self.nn, self.batch_size)
+        iter = 0
+        while not mcts.all_terminal:
+            mcts.search_and_pick_to_move(self.simu_num)
+            print("Iters: {}".format(iter))
             iter += 1
         return mcts
 
