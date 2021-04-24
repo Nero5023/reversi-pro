@@ -76,7 +76,8 @@ class NeuralNet:
                     total_loss = l_pi + l_v
 
                     # log loss
-                    loss_log_file.write('{},{},{},{},{}\n'.format(version, epoch, step, l_pi, l_v))
+                    if step % 10 == 0:
+                        loss_log_file.write('{},{},{},{},{}\n'.format(version, epoch, step, l_pi, l_v))
 
                     # record loss
                     pi_losses.update(l_pi.item(), boards.size(0))

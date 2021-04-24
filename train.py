@@ -88,7 +88,7 @@ def train_worker(data, version):
     new_version = 0
     if version is not None:
         new_version += 1
-    nn.save_checkpoint(CHECK_POINT_FN_TEM.format(new_version))
+    nn.save_checkpoint(filename=CHECK_POINT_FN_TEM.format(new_version))
 
 
 if __name__ == '__main__':
