@@ -439,10 +439,11 @@ if __name__ == '__main__':
 
     mcts = MCTS(NeuralNetRandom())
     move_num = 1
-    while True:
+    while not mcts.is_terminal:
         print("Move id {}".format(move_num))
         mcts.search(num_reads)
         print(mcts.current_node.state.board.to_str())
         move = mcts.pick_move()
         mcts.take_move(move)
         move_num += 1
+    mcts.generate_game_data()
