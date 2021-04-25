@@ -62,16 +62,33 @@ def play_reversi(player_black: GamePlayer, player_white: GamePlayer, need_print=
     return game.winner_score()
 
 
+def play_reversi_benchmark(model_path0, model_path1, nums):
+    black_win = 0
+    tie = 0
+    white_win = 0
+    for i in range(nums):
+        nn0 = NeuralNet(config.game_config)
+        nn0.load_checkpoint(filename=model_path0)
+        nn1 = NeuralNet(config.game_config)
+        nn1.load_checkpoint(filename=model_path1)
+        player0 = MCTSPlayer(nn0)
+        player1 = MCTSPlayer(nn1)
+        res = play_reversi(player0, player1)
+        print(res)
+        if res == 1:
+            black_win += 1
+        elif res == 0:
+            tie += 1
+        else:
+            white_win += 1
+    print("win: {}, tie: {}, white: {}".format(black_win, tie, white_win))
+    print("percentage: {}".format(black_win/nums))
+
+
 if __name__ == '__main__':
     import os
 
     os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
-    nn0 = NeuralNet(config.game_config)
-    nn0.load_checkpoint('best_model.pth.tar')
-    nn1 = NeuralNet(config.game_config)
 
-    player0 = MCTSPlayer(nn0)
-    player1 = MCTSPlayer(nn1)
+    play_reversi_benchmark('model_v36.tar', 'model_v10.tar', 10)
 
-    res = play_reversi(player0, player1)
-    print(res)

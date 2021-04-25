@@ -94,8 +94,15 @@ class MCTSNode:
         #     # add this to prevent self.child_Q() + self.child_U() < 0, others is == 0, which cloud take illegal action
         #     return np.argmax(self.child_Q() + self.child_U() + 1000 * self.state.get_legal_actions())
 
+        if self.height < 10:
+            # for search root add noise
+            return np.argmax(self.child_Q() + self.child_U_inject_noise() + 1000 * self.state.get_legal_actions())
+        else:
+            # add this to prevent self.child_Q() + self.child_U() < 0, others is == 0, which cloud take illegal action
+            return np.argmax(self.child_Q() + self.child_U() + 1000 * self.state.get_legal_actions())
+
         # TODO: where to add noise
-        return np.argmax(self.child_Q() + self.child_U() + 1000 * self.state.get_legal_actions())
+        # return np.argmax(self.child_Q() + self.child_U() + 1000 * self.state.get_legal_actions())
 
     def select_leaf(self):
         node = self
