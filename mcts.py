@@ -359,8 +359,7 @@ class MCTSBatch:
             child_priors_batch, value_estimate_batch = self.nn.predict_batch(batch_features)
             for i, nt_leaf in enumerate(non_terminal_leaves):
                 nt_leaf.expand(child_priors_batch[i])
-                # inject noise for self play
-                if nt_leaf.height < 6:
+                if nt_leaf < 4:
                     nt_leaf.inject_noise()
                 nt_leaf.back_update(value_estimate_batch[i])
 
