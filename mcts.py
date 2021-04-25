@@ -360,7 +360,7 @@ class MCTSBatch:
             for i, nt_leaf in enumerate(non_terminal_leaves):
                 nt_leaf.expand(child_priors_batch[i])
                 # add noise
-                if nt_leaf < 4:
+                if nt_leaf.height < 4:
                     nt_leaf.inject_noise()
                 nt_leaf.back_update(value_estimate_batch[i])
 
