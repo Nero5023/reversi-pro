@@ -93,16 +93,8 @@ class MCTSNode:
         # else:
         #     # add this to prevent self.child_Q() + self.child_U() < 0, others is == 0, which cloud take illegal action
         #     return np.argmax(self.child_Q() + self.child_U() + 1000 * self.state.get_legal_actions())
-
-        if self.height < 10:
-            # for search root add noise
-            return np.argmax(self.child_Q() + self.child_U_inject_noise() + 1000 * self.state.get_legal_actions())
-        else:
-            # add this to prevent self.child_Q() + self.child_U() < 0, others is == 0, which cloud take illegal action
-            return np.argmax(self.child_Q() + self.child_U() + 1000 * self.state.get_legal_actions())
-
         # TODO: where to add noise
-        # return np.argmax(self.child_Q() + self.child_U() + 1000 * self.state.get_legal_actions())
+        return np.argmax(self.child_Q() + self.child_U() + 1000 * self.state.get_legal_actions())
 
     def select_leaf(self):
         node = self
@@ -184,7 +176,13 @@ class MCTSNode:
             self.pi = pi
         return self.pi
 
-    # TODO: add noise
+    def inject_noise(self):
+        epsilon = 1e-5
+        legal_moves = self.state.get_legal_actions() + epsilon
+        alphas = legal_moves * ([NOISE_ALPHA] * TOTAL_POSSIBLE_MOVE)
+        noise = np.random.dirichlet(alphas)
+        p_with_noise = self.child_priors*(1-NOISE_EPSILON) + noise*NOISE_EPSILON
+        self.child_priors = p_with_noise
 
     def generate_flip_rotate_data(self, winner_z):
         """
@@ -361,6 +359,9 @@ class MCTSBatch:
             child_priors_batch, value_estimate_batch = self.nn.predict_batch(batch_features)
             for i, nt_leaf in enumerate(non_terminal_leaves):
                 nt_leaf.expand(child_priors_batch[i])
+                # inject noise for self play
+                if nt_leaf.height < 6:
+                    nt_leaf.inject_noise()
                 nt_leaf.back_update(value_estimate_batch[i])
 
     def pick_moves(self):
