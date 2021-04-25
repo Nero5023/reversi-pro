@@ -43,7 +43,8 @@ class HumanPlayer(GamePlayer):
             for i in legal_moves:
                 print(int_move_to_position(i))
             human_input_str = input(">")
-            if human_input_str == "pass":
+            human_input_str = human_input_str.upper()
+            if human_input_str == "PASS":
                 return 64
             if len(human_input_str) != 2:
                 print("input is two char")
@@ -131,4 +132,4 @@ if __name__ == '__main__':
     nn0.load_checkpoint(filename='model_v.tar')
     player0 = MCTSPlayer(nn0)
     human = HumanPlayer()
-    play_reversi(human, player0)
+    play_reversi(player0, human)
