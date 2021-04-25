@@ -39,7 +39,8 @@ class HumanPlayer(GamePlayer):
         while True:
             print("Please input:")
             print("legal action:")
-            for i in np.where(game_state.get_legal_actions() == 1)[0]:
+            legal_moves = np.where(game_state.get_legal_actions() == 1)[0]
+            for i in legal_moves:
                 print(int_move_to_position(i))
             human_input_str = input(">")
             if human_input_str == "pass":
@@ -56,6 +57,9 @@ class HumanPlayer(GamePlayer):
             if ord(col) < ord('A') or ord(col) > ord('H'):
                 continue
             move = position_to_int_move(human_input_str)
+            if move not in legal_moves:
+                print("not legal move!")
+                continue
             return move
 
 
@@ -71,7 +75,7 @@ def play_reversi(player_black: GamePlayer, player_white: GamePlayer, need_print=
         game = game.take_move(move_black)
 
         if need_print:
-            print("Black: move {}".format(move_black))
+            print("Black: move {}: {}".format(move_black, int_move_to_position(move_black)))
             print(game.board.to_str())
         player_white.rival_take_move(move_black)
         move_white = player_white.pick_move(game)
@@ -80,7 +84,7 @@ def play_reversi(player_black: GamePlayer, player_white: GamePlayer, need_print=
         game = game.take_move(move_white)
 
         if need_print:
-            print("White: move {}".format(move_white))
+            print("White: move {}: {}".format(move_white, int_move_to_position(move_white)))
             print(game.board.to_str())
 
         player_black.rival_take_move(move_white)
