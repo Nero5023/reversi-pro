@@ -83,7 +83,7 @@ class MCTSNode:
         legal_moves = self.state.get_legal_actions() + epsilon
         alphas = legal_moves * ([NOISE_ALPHA] * TOTAL_POSSIBLE_MOVE)
         noise = np.random.dirichlet(alphas)
-        p_with_noise = self.child_priors*(1-NOISE_EPSILON) + noise + NOISE_EPSILON
+        p_with_noise = self.child_priors*(1-NOISE_EPSILON) + noise*NOISE_EPSILON
         return C_PUCT*math.sqrt(self.N) * (p_with_noise / (1 + self.child_number_visits))
 
     def best_child(self):

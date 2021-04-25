@@ -90,5 +90,7 @@ if __name__ == '__main__':
 
     os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
+
+
     play_reversi_benchmark('model_v36.tar', 'model_v10.tar', 10)
 
