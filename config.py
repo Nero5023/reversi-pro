@@ -9,7 +9,7 @@ self_play_batch_size = 32
 self_play_parallel_num = 8
 
 # play the game of the num of simulations
-play_simu_num = 10000
+play_simu_num = 4000
 
 
 #########################################################
