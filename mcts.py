@@ -71,6 +71,10 @@ class MCTSNode:
     def W(self, value):
         self.parent.child_total_values[self.move] = value
 
+    @property
+    def Q(self):
+        return self.parent.child_Q[self.move]
+
     def child_Q(self):
         # return self.child_total_values / (1+self.child_number_visits)
         return self.child_total_values * self.state.to_play_factor / (self.child_number_visits + (self.child_number_visits == 0))

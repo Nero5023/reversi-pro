@@ -27,9 +27,11 @@ class MCTSPlayer(GamePlayer):
     def pick_move(self, game_state):
         if self.print_value:
             _, value = self.nn.predict(self.mcts.current_node.to_features())
-            print("current state: {}".format(value))
+            print("current state predict value: {}".format(value))
         self.mcts.search(self.sum_num)
         move = self.mcts.pick_move()
+        if self.print_value:
+            print("After search Q value: {}".format(self.mcts.current_node.Q))
         return move
 
     def take_move(self, move):
