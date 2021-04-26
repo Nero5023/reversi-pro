@@ -18,11 +18,16 @@ class GamePlayer:
 
 
 class MCTSPlayer(GamePlayer):
-    def __init__(self, nn, sim_num=config.play_simu_num):
+    def __init__(self, nn: NeuralNet, sim_num=config.play_simu_num, print_value=True):
         self.mcts = MCTS(nn)
+        self.nn = nn
         self.sum_num = sim_num
+        self.print_value = print_value
 
     def pick_move(self, game_state):
+        if self.print_value:
+            _, value = self.nn.predict(self.mcts.current_node.to_features())
+            print("current state: {}".format(value))
         self.mcts.search(self.sum_num)
         move = self.mcts.pick_move()
         return move
