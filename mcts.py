@@ -73,6 +73,8 @@ class MCTSNode:
 
     @property
     def Q(self):
+        if self.height == 0:
+            return 0
         return self.parent.child_Q[self.move]
 
     def child_Q(self):
