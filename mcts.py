@@ -7,6 +7,7 @@ import math
 from board import BOARD_SIZE_LEN, PASS_MOVE, ReversiBoard, GameState, BOARD_SIDE, Player
 import numpy as np
 from collections import defaultdict
+import config
 
 TOTAL_POSSIBLE_MOVE = BOARD_SIZE_LEN + 1
 
@@ -360,7 +361,7 @@ class MCTSBatch:
             for i, nt_leaf in enumerate(non_terminal_leaves):
                 nt_leaf.expand(child_priors_batch[i])
                 # add noise
-                if nt_leaf.height < 4:
+                if nt_leaf.height < config.self_play_batch_noise_move_epoch:
                     nt_leaf.inject_noise()
                 nt_leaf.back_update(value_estimate_batch[i])
 

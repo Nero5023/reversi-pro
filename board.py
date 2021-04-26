@@ -100,6 +100,35 @@ class ReversiBoard:
             rep_str_arr.append(row)
         return '\n'.join(rep_str_arr)
 
+    def to_rotate_flip_str(self, player: Player = None):
+        first_row = '  A B C D E F G H'
+        if player is None:
+            zip_list = zip(bit_to_1d_array(self.black_bit, BOARD_SIZE_LEN),
+                           bit_to_1d_array(self.white_bit, BOARD_SIZE_LEN))
+        else:
+            zip_list = zip(bit_to_1d_array(self.black_bit, BOARD_SIZE_LEN),
+                           bit_to_1d_array(self.white_bit, BOARD_SIZE_LEN),
+                           self.get_legal_actions(player))
+
+        # print(zip_list)
+        board_ch_list = np.array(list(map(map_tuple_to_ch, zip_list))).reshape(BOARD_SIDE, BOARD_SIDE)
+        boards = []
+        for i in [0, 1, 2, 3]:
+            # rotate
+            new_board_rotate = np.rot90(board_ch_list, i)
+            boards.append(new_board_rotate)
+            # flip
+            new_board_flip = np.fliplr(new_board_rotate)
+            boards.append(new_board_flip)
+        board_strs = []
+        for board in boards:
+            rep_str_arr = [first_row]
+            for index, arr in enumerate(board):
+                row = '{} {}'.format(index+1, ' '.join(arr))
+                rep_str_arr.append(row)
+            board_strs.append('\n'.join(rep_str_arr))
+        return '\n\n'.join(board_strs)
+
 
 def map_tuple_to_ch(tup):
     black = '●'
