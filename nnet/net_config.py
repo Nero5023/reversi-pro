@@ -1,6 +1,6 @@
 import torch
 
-batch_size = 32
+batch_size = 128
 cuda = torch.cuda.is_available()
 num_channels = 512
 lr = 0.001
