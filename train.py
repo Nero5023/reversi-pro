@@ -9,6 +9,7 @@ import json
 from util import flatten
 import torch
 import argparse
+import gc
 
 BEST_CHECKPOINT_FN = "best_model.tar"
 BEST_MODEL_TYPE = 1
@@ -90,7 +91,9 @@ class TrainPipe:
             pool.join()
 
             datas = flatten(datas)
-
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
             process = Process(target=train_worker, args=(datas, self.version, self.model_type))
             process.start()
             process.join()
