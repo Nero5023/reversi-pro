@@ -34,6 +34,7 @@ class AverageMeter(object):
 
 class NeuralNet:
     def __init__(self, game_config, model_type=1):
+        self.model_type = model_type
         if model_type == 1:
             self.nnet = NNetModel(game_config)
         else:
