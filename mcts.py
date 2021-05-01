@@ -222,7 +222,7 @@ class MCTSNode:
         p_with_noise = self.child_priors*(1-NOISE_EPSILON) + noise*NOISE_EPSILON
         self.child_priors = p_with_noise
 
-    def generate_flip_rotate_data(self, winner_z, model_type=1):
+    def generate_flip_rotate_data(self, winner_z, feature_version=1):
         """
         generate the data set by rotation and flipping
         :param state: np array: feature_nums x board_size x board_size
@@ -230,7 +230,7 @@ class MCTSNode:
         :param winner_z: 1: black win   -1: white win
         :return: extended features [(state_features, pi, winner_z),...]
         """
-        if model_type == 1:
+        if feature_version == 1:
             features = self.to_features()
         else:
             features = self.to_features_v2()
@@ -341,7 +341,7 @@ class MCTS:
     def is_terminal(self):
         return self.current_node.is_terminal
 
-    def generate_game_data(self):
+    def generate_game_data(self, feature_version=None):
         if not self.is_terminal:
             return []
         winner_z = 0
@@ -352,7 +352,10 @@ class MCTS:
         node = self.current_node
         data = []
         while True:
-            extend_datas = node.generate_flip_rotate_data(winner_z, self.nn.model_type)
+            if feature_version is None:
+                extend_datas = node.generate_flip_rotate_data(winner_z, self.nn.model_type)
+            else:
+                extend_datas = node.generate_flip_rotate_data(winner_z, feature_version)
             data.extend(extend_datas)
             if node.is_game_root:
                 break
@@ -443,7 +446,7 @@ class MCTSBatch:
     def all_terminal(self):
         return self.terminal_count == self.batch_size
 
-    def generate_game_data(self):
+    def generate_game_data(self, feature_version=None):
         if not self.all_terminal:
             return []
         data = []
@@ -455,7 +458,10 @@ class MCTSBatch:
                 winner_z = -1
             node = self.current_nodes[i]
             while True:
-                extend_datas = node.generate_flip_rotate_data(winner_z, self.nn.model_type)
+                if feature_version is None:
+                    extend_datas = node.generate_flip_rotate_data(winner_z, self.nn.model_type)
+                else:
+                    extend_datas = node.generate_flip_rotate_data(winner_z, feature_version)
                 data.extend(extend_datas)
                 if node.is_game_root:
                     break

@@ -116,7 +116,7 @@ def self_play_game_worker(arg):
     else:
         nn = load_model_with_version(version, model_type)
         print("playing: v{} type:{}".format(version, model_type))
-    game = SelfPlayBatch(nn)
+    game = SelfPlayBatch(nn, generate_feature_version=model_type)
     game.start()
     return game.game_data
 
