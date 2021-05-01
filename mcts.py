@@ -413,6 +413,8 @@ class MCTSBatch:
             move = moves[i]
             self.current_nodes[i] = node.maybe_add_child(move)
             self.current_nodes[i].is_search_root = True
+            self.current_nodes[i].parent.children.clear()
+            self.current_nodes[i].parent.is_search_root = False
 
             if self.current_nodes[i].is_terminal:
                 # update last node of children's pi
