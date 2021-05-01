@@ -67,9 +67,10 @@ def delete_model(current_version, type=1):
 
 
 class TrainPipe:
-    def __init__(self, parallel_num=config.self_play_parallel_num):
+    def __init__(self, parallel_num=config.self_play_parallel_num, model_type=1):
         self.train_status = load_train_status()
         self.parallel_num = parallel_num
+        self.model_type = model_type
 
     @property
     def version(self):
@@ -84,13 +85,13 @@ class TrainPipe:
             pool = Pool(config.self_play_parallel_num)
             # for i in range(config.self_play_parallel_num):
             #     pool.apply_async(self.self_play_game, (i, self.version))
-            datas = pool.map(self_play_game_worker, [(i, self.version) for i in range(self.parallel_num)])
+            datas = pool.map(self_play_game_worker, [(i, self.version, self.model_type) for i in range(self.parallel_num)])
             pool.close()
             pool.join()
 
             datas = flatten(datas)
 
-            process = Process(target=train_worker, args=(datas, self.version))
+            process = Process(target=train_worker, args=(datas, self.version, self.model_type))
             process.start()
             process.join()
             if self.version is None:
@@ -102,7 +103,7 @@ class TrainPipe:
 
 
 def self_play_game_worker(arg):
-    i, version = arg
+    i, version, model_type = arg
     if version is None or version <= 2:
         nn = NeuralNet(game_config, model_type=BEST_MODEL_TYPE)
         fdir = get_checkpoint_folder(BEST_MODEL_TYPE)
@@ -112,16 +113,16 @@ def self_play_game_worker(arg):
         else:
             print("Playing with non model")
     else:
-        nn = load_model_with_version(version, config.train_model_type)
-        print("playing: v{} type:{}".format(version, config.train_model_type))
+        nn = load_model_with_version(version, model_type)
+        print("playing: v{} type:{}".format(version, model_type))
     game = SelfPlayBatch(nn)
     game.start()
     return game.game_data
 
 
-def train_worker(data, version):
-    print("training: v{} type:{}".format(version, config.train_model_type))
-    nn = load_model_with_version(version, config.train_model_type)
+def train_worker(data, version, model_type=1):
+    print("training: v{} type:{}".format(version, model_type))
+    nn = load_model_with_version(version, model_type)
     nn.train(data, version)
     new_version = 0
     if version is not None:
@@ -137,10 +138,10 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
-    config.train_model_type = args.type
-    print("training type:{}".format(config.train_model_type))
+    model_type = args.type
+    print("training type:{}".format(model_type))
     if torch.cuda.is_available():
         import torch.multiprocessing as mp
         mp.set_start_method('spawn', force=True)
-    train = TrainPipe()
+    train = TrainPipe(model_type=model_type)
     train.start()
