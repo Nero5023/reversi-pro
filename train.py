@@ -103,11 +103,14 @@ class TrainPipe:
 
 def self_play_game_worker(arg):
     i, version = arg
-    if version <= 2:
+    if version is None or version <= 2:
         nn = NeuralNet(game_config, model_type=BEST_MODEL_TYPE)
         fdir = get_checkpoint_folder(BEST_MODEL_TYPE)
-        nn.load_checkpoint(folder=fdir, filename=BEST_CHECKPOINT_FN)
-        print("Playing best model")
+        if os.path.isfile(fdir + '/' + BEST_CHECKPOINT_FN):
+            nn.load_checkpoint(folder=fdir, filename=BEST_CHECKPOINT_FN)
+            print("Playing best model")
+        else:
+            print("Playing with non model")
     else:
         nn = load_model_with_version(version, config.train_model_type)
         print("playing: v{} type:{}".format(version, config.train_model_type))
