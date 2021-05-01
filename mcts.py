@@ -147,6 +147,36 @@ class MCTSNode:
             features[-1] = np.ones([BOARD_SIDE, BOARD_SIDE], dtype=np.float)
         return features
 
+    def to_features_v2(self):
+        # ???????????
+        history_num = 4
+        num_of_features = history_num*2 + 7
+        player = self.state.to_play
+        features = np.zeros([num_of_features, BOARD_SIDE, BOARD_SIDE], dtype=np.uint8)
+        node = self
+        for i in range(history_num):
+            me, rival = node.state.board.get_self_rival_array2d_tuple(player)
+            features[2*i] = me
+            features[2*i+1] = rival
+            if node.is_game_root:
+                break
+            node = node.parent
+        # legal moves
+        me_l, rival_l = self.state.board.get_self_rival_legal_action_2d_tuple(player)
+        features[history_num*2] = me_l
+        features[history_num * 2 + 1] = rival_l
+        # stable pieces
+        features[history_num*2 + 2] = self.state.board.get_stable_pieces_2d(player)
+        features[history_num*2 + 3] = self.state.board.get_stable_pieces_2d(player.rival())
+        # border pieces
+        features[history_num*2 + 4] = self.state.board.get_border_2d(player)
+        features[history_num*2 + 5] = self.state.board.get_border_2d(player.rival())
+
+
+        if player == Player.BLACK:
+            features[-1] = np.ones([BOARD_SIDE, BOARD_SIDE], dtype=np.uint8)
+        return features
+
     def back_update(self, value):
         # TODO: Check minigo mcts.py line 210
         # value = 1, black win

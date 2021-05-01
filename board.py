@@ -16,7 +16,17 @@ class Player(Enum):
 BLACK_START = np.uint64(0b1000 << 32 | 0b10000 << 24)
 WHITE_START = np.uint64(0b1000 << 24 | 0b10000 << 32)
 
+BORDER_MASK = np.uint64(0b11111111 << 56 |
+                        0b10000001 << 48 |
+                        0b10000001 << 40 |
+                        0b10000001 << 32 |
+                        0b10000001 << 24 |
+                        0b10000001 << 16 |
+                        0b10000001 << 8 |
+                        0b11111111)
+
 FINAL_BIT = ~np.uint64(0)
+FULL_BIT = ~np.uint64(0)
 
 BOARD_SIDE = 8
 BOARD_SIZE_LEN = BOARD_SIDE*BOARD_SIDE
@@ -128,6 +138,24 @@ class ReversiBoard:
                 rep_str_arr.append(row)
             board_strs.append('\n'.join(rep_str_arr))
         return '\n\n'.join(board_strs)
+
+    # return the player's stable piece
+    def get_stable_pieces_bit(self, player: Player):
+        rival = player.rival()
+        rival_legal_moves = self.get_legal_actions_in_numbers(rival)[0]
+        self_stable_piece = self.bit_state(player)
+        for move in rival_legal_moves:
+            new_board = self.take_move(rival, move)
+            self_stable_piece &= new_board.black_bit
+        return self_stable_piece
+
+    def get_stable_pieces_2d(self, player: Player):
+        stable_bit_piece = self.get_stable_pieces_bit(player)
+        return bit_to_2d_array(stable_bit_piece, BOARD_SIDE, BOARD_SIDE)
+
+    # return the board of given player
+    def get_border_2d(self, player: Player):
+        return bit_to_2d_array(BORDER_MASK & self.bit_state(player), BOARD_SIDE, BOARD_SIDE)
 
 
 def map_tuple_to_ch(tup):
@@ -322,3 +350,7 @@ if __name__ == '__main__':
     print(b.get_legal_actions_in_numbers(Player.BLACK))
     print(b.to_str(Player.BLACK))
     print(b.take_move(Player.BLACK, 44).to_str(Player.WHITE))
+    print(bit_to_2d_array(BORDER_MASK, 8, 8))
+    new_b = b.take_move(Player.BLACK, 19)
+    print(new_b.to_str())
+    print(new_b.get_stable_pieces_2d(Player.BLACK))

@@ -8,8 +8,10 @@ from multiprocessing import Pool, Process
 import json
 from util import flatten
 import torch
+import argparse
 
-BEST_CHECKPOINT_FN = "best_model.pth.tar"
+BEST_CHECKPOINT_FN = "best_model.tar"
+BEST_MODEL_TYPE = 1
 
 CHECK_POINT_FN_TEM = 'model_v{}.tar'
 
@@ -30,26 +32,36 @@ def save_train_status(data):
         json.dump(data, f)
 
 
-def load_model_with_version(version):
-    nn = NeuralNet(game_config)
+def get_checkpoint_folder(type=1):
+    if type == 1:
+        return 'checkpoint'
+    else:
+        return 'checkpoint_v2'
+
+
+def load_model_with_version(version, type=1):
+    nn = NeuralNet(game_config, model_type=type)
     if version is None:
         return nn
     fn = CHECK_POINT_FN_TEM.format(version)
-    f_path = 'checkpoint/' + fn
+    checkpoint_dir = get_checkpoint_folder(type)
+
+    f_path = checkpoint_dir + '/' + fn
     if os.path.isfile(f_path):
-        nn.load_checkpoint(filename=fn)
+        nn.load_checkpoint(folder=checkpoint_dir, filename=fn)
         return nn
     raise Exception("Model {} not found.".format(f_path))
 
 
-def delete_model(current_version):
-    if current_version < 10:
+def delete_model(current_version, type=1):
+    if current_version < 5:
         return
     if current_version % 10 == 0:
         return
     delete_version = current_version - 10
     fn = CHECK_POINT_FN_TEM.format(delete_version)
-    f_path = 'checkpoint/' + fn
+    folder = get_checkpoint_folder(type)
+    f_path = folder + '/' + fn
     if os.path.isfile(f_path):
         os.remove(f_path)
 
@@ -91,14 +103,22 @@ class TrainPipe:
 
 def self_play_game_worker(arg):
     i, version = arg
-    nn = load_model_with_version(version)
+    if version <= 2:
+        nn = NeuralNet(game_config, model_type=BEST_MODEL_TYPE)
+        fdir = get_checkpoint_folder(BEST_MODEL_TYPE)
+        nn.load_checkpoint(folder=fdir, filename=BEST_CHECKPOINT_FN)
+        print("Playing best model")
+    else:
+        nn = load_model_with_version(version, config.train_model_type)
+        print("playing: v{} type:{}".format(version, config.train_model_type))
     game = SelfPlayBatch(nn)
     game.start()
     return game.game_data
 
 
 def train_worker(data, version):
-    nn = load_model_with_version(version)
+    print("training: v{} type:{}".format(version, config.train_model_type))
+    nn = load_model_with_version(version, config.train_model_type)
     nn.train(data, version)
     new_version = 0
     if version is not None:
@@ -106,7 +126,16 @@ def train_worker(data, version):
     nn.save_checkpoint(filename=CHECK_POINT_FN_TEM.format(new_version))
 
 
+def parse_args():
+    args = argparse.ArgumentParser()
+    args.add_argument('-t', '--type', type=int, dest="type", default=1, required=False)
+    return args.parse_args()
+
+
 if __name__ == '__main__':
+    args = parse_args()
+    config.train_model_type = args.type
+    print("training type:{}".format(config.train_model_type))
     if torch.cuda.is_available():
         import torch.multiprocessing as mp
         mp.set_start_method('spawn', force=True)

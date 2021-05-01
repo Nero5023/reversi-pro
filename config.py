@@ -13,6 +13,12 @@ play_simu_num = 4000
 
 
 #########################################################
+# Train config
+#########################################################
+train_model_type = 1
+
+
+#########################################################
 # MCTS config
 #########################################################
 # less than which epoch to add noise
@@ -30,7 +36,8 @@ total_possible_move = board_len * board_len + 1
 game_config = dotdict({
     "board_size": (board_len, board_len),
     "action_size":  total_possible_move,
-    "feature_channels": 7
+    "feature_channels": 7,
+    "feature_channels_v2": 15
 })
 
 

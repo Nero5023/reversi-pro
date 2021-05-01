@@ -10,6 +10,7 @@ import torch
 import torch.optim as optim
 
 from .nn_model import NNetModel
+from .nn_movel_v2 import NNetModelV2
 from . import net_config
 
 
@@ -32,8 +33,11 @@ class AverageMeter(object):
 
 
 class NeuralNet:
-    def __init__(self, game_config):
-        self.nnet = NNetModel(game_config)
+    def __init__(self, game_config, model_type=1):
+        if model_type == 1:
+            self.nnet = NNetModel(game_config)
+        else:
+            self.nnet = NNetModelV2(game_config)
         self.board_x, self.board_y = game_config.board_size
         self.action_size = game_config.action_size
 
