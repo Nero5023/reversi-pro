@@ -107,7 +107,7 @@ class TrainPipe:
 
 def self_play_game_worker(arg):
     i, version, model_type = arg
-    if version is None or version <= 2:
+    if version is None or version < 0:
         nn = NeuralNet(game_config, model_type=BEST_MODEL_TYPE)
         fdir = get_checkpoint_folder(BEST_MODEL_TYPE)
         print("play  try load path: {}".format(fdir + '/' + BEST_CHECKPOINT_FN))
@@ -131,7 +131,8 @@ def train_worker(data, version, model_type=1):
     new_version = 0
     if version is not None:
         new_version = version + 1
-    nn.save_checkpoint(filename=CHECK_POINT_FN_TEM.format(new_version))
+    checkpoint_dir = get_checkpoint_folder(model_type)
+    nn.save_checkpoint(folder=checkpoint_dir, filename=CHECK_POINT_FN_TEM.format(new_version))
 
 
 def parse_args():
