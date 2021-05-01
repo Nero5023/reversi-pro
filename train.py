@@ -107,6 +107,7 @@ def self_play_game_worker(arg):
     if version is None or version <= 2:
         nn = NeuralNet(game_config, model_type=BEST_MODEL_TYPE)
         fdir = get_checkpoint_folder(BEST_MODEL_TYPE)
+        print("play  try load path: {}".format(fdir + '/' + BEST_CHECKPOINT_FN))
         if os.path.isfile(fdir + '/' + BEST_CHECKPOINT_FN):
             nn.load_checkpoint(folder=fdir, filename=BEST_CHECKPOINT_FN)
             print("Playing best model")
