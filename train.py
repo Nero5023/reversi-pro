@@ -55,15 +55,17 @@ def load_model_with_version(version, type=1):
 
 
 def delete_model(current_version, type=1):
-    if current_version < 5:
+    max_version = 10
+    if current_version < max_version:
         return
     if current_version % 10 == 0:
         return
-    delete_version = current_version - 10
+    delete_version = current_version - max_version
     fn = CHECK_POINT_FN_TEM.format(delete_version)
     folder = get_checkpoint_folder(type)
     f_path = folder + '/' + fn
     if os.path.isfile(f_path):
+        print("Delete model: {}".format(f_path))
         os.remove(f_path)
 
 
@@ -102,7 +104,7 @@ class TrainPipe:
             else:
                 self.version = self.version + 1
             save_train_status(self.train_status)
-            delete_model(self.version)
+            delete_model(self.version, self.model_type)
 
 
 def self_play_game_worker(arg):

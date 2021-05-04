@@ -32,6 +32,16 @@ board_len = 8
 # the extra 1 is pass mvoe
 total_possible_move = board_len * board_len + 1
 
+pass_move = 64
+
+#########################################################
+# edax config
+#########################################################
+edax_path = '../edax-reversi/bin/Edax'
+edax_eval_path = '../edax-reversi/data/eval.dat'
+edax_book_path = '../edax-reversi/data/book.dat'
+
+
 
 game_config = dotdict({
     "board_size": (board_len, board_len),
