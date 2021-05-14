@@ -73,10 +73,14 @@ class MCTSPlayer(GamePlayer):
         self.nn = nn
         self.sum_num = sim_num
         self.print_value = print_value
+        self.model_type = nn.model_type
 
     def pick_move(self, game_state):
         if self.print_value:
-            _, value = self.nn.predict(self.mcts.current_node.to_features())
+            if self.model_type == 1:
+                _, value = self.nn.predict(self.mcts.current_node.to_features())
+            else:
+                _, value = self.nn.predict(self.mcts.current_node.to_features_v2())
             print("current state predict value: {}".format(value))
         self.mcts.search(self.sum_num)
         move = self.mcts.pick_move()
@@ -179,13 +183,13 @@ def play_reversi_benchmark(model_path0, model_path1, nums):
     print("percentage: {}".format(black_win/nums))
 
 
-def play_model_reversi_with_edax(model_path, level, times=20):
+def play_model_reversi_with_edax(model_path, level, times=20, model_type=1, folder='checkpoint'):
     black_win = 0
     tie = 0
     white_win = 0
     for i in range(times):
-        nn0 = NeuralNet(config.game_config)
-        nn0.load_checkpoint(filename=model_path)
+        nn0 = NeuralNet(config.game_config, model_type=model_type)
+        nn0.load_checkpoint(filename=model_path, folder=folder)
         player0 = MCTSPlayer(nn0)
 
         player_edax = EdaxPlayer(level)
@@ -229,4 +233,4 @@ if __name__ == '__main__':
 
     # play_model_with_human('model_v.tar')
 
-    play_model_reversi_with_edax('model_v.tar', level=2, times=10)
+    play_model_reversi_with_edax('model_v.tar', level=2, times=10, model_type=2, folder='checkpoint_v2')
