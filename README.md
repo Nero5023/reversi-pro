@@ -24,20 +24,17 @@ $ python game_player.py
 
 
 
+## Training
 
+### Pi Loss
 
-CPU: 
+![](./img/pi_loss.png)
 
-Two Intel Xeon E5-2660 (2.60 GHz) (40 cores)
+![value loss](./img/v_loss.png)
 
-GPU:
+## Trained Model
 
-RTX 2080 Ti (11 GB memory)
+[Model](https://drive.google.com/file/d/1H_n6JtUYgn_NozMmeJGE0aKLhGacaFe6/view?usp=sharing)
 
-Memory:
+[Model](https://drive.google.com/file/d/1H_n6JtUYgn_NozMmeJGE0aKLhGacaFe6/view?usp=sharing)
 
-256 GB
-
-System:
-
-CentOS 7
