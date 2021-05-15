@@ -38,3 +38,11 @@ $ python game_player.py
 
 [Model](https://drive.google.com/file/d/1H_n6JtUYgn_NozMmeJGE0aKLhGacaFe6/view?usp=sharing)
 
+
+
+
+
+## Reference
+
+https://github.com/tensorflow/minigo
+
